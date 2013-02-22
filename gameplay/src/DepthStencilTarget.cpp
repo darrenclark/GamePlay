@@ -14,7 +14,7 @@ namespace gameplay
 static std::vector<DepthStencilTarget*> __depthStencilTargets;
 
 DepthStencilTarget::DepthStencilTarget(const char* id, Format format, unsigned int width, unsigned int height)
-    : _id(id ? id : ""), _format(format), _depthBuffer(0), _stencilBuffer(0), _width(width), _height(height), _packed(false)
+    : _id(id ? id : ""), _format(format), _depthBuffer(0), _stencilBuffer(0), _depthTexture(NULL), _width(width), _height(height), _packed(false)
 {
 }
 
@@ -25,6 +25,8 @@ DepthStencilTarget::~DepthStencilTarget()
         GL_ASSERT( glDeleteRenderbuffers(1, &_depthBuffer) );
     if (_stencilBuffer)
         GL_ASSERT( glDeleteRenderbuffers(1, &_stencilBuffer) );
+	if (_depthTexture)
+		SAFE_RELEASE(_depthTexture);
 
     // Remove from vector.
     std::vector<DepthStencilTarget*>::iterator it = std::find(__depthStencilTargets.begin(), __depthStencilTargets.end(), this);
@@ -87,6 +89,35 @@ DepthStencilTarget* DepthStencilTarget::create(const char* id, Format format, un
     return depthStencilTarget;
 }
 
+DepthStencilTarget* DepthStencilTarget::createTexture(const char* id, unsigned int width, unsigned int height)
+{
+	// Create the depth target.
+	DepthStencilTarget* depthStencilTarget = new DepthStencilTarget(id, DEPTH, width, height);
+	
+	// Create and bind a texture
+	TextureHandle textureHandle;
+	GL_ASSERT( glGenTextures(1, &textureHandle) );
+	GL_ASSERT( glBindTexture(GL_TEXTURE_2D, textureHandle) );
+	
+	// Set texture parameters
+	GL_ASSERT( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE) );
+	GL_ASSERT( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE) );
+	GL_ASSERT( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST) );
+	GL_ASSERT( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST) );
+	
+	// Setup texture to use the GL_DEPTH_COMPONENT format
+	GL_ASSERT( glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL) );
+	
+	// Create our Texture object
+	Texture* texture = Texture::create(textureHandle, width, height);
+	depthStencilTarget->_depthTexture = texture;
+	
+	// Add it to the cache.
+	__depthStencilTargets.push_back(depthStencilTarget);
+	
+	return depthStencilTarget;
+}
+	
 DepthStencilTarget* DepthStencilTarget::getDepthStencilTarget(const char* id)
 {
     GP_ASSERT(id);
@@ -128,5 +159,10 @@ unsigned int DepthStencilTarget::getHeight() const
 bool DepthStencilTarget::isPacked() const
 {
     return _packed;
+}
+	
+Texture* DepthStencilTarget::getDepthTexture() const
+{
+	return _depthTexture;
 }
 }

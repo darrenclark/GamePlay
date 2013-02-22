@@ -45,6 +45,18 @@ public:
      */
     static DepthStencilTarget* create(const char* id, Format format, unsigned int width, unsigned int height);
 
+	/**
+     * Create a DepthStencilTarget targeting a depth texture that can later be retrieved by calling getTexture()
+     *
+     * @param id The ID of the new DepthStencilTarget.  Uniqueness is recommended but not enforced.
+     * @param width Width of the new DepthStencilTarget.
+     * @param height Height of the new DepthStencilTarget.
+     *
+     * @return A newly created DepthStencilTarget.
+     * @script{create}
+     */
+    static DepthStencilTarget* createTexture(const char* id, unsigned int width, unsigned int height);
+	
     /**
      * Get a named DepthStencilTarget from its ID.
      *
@@ -89,6 +101,14 @@ public:
      */
     bool isPacked() const;
 
+	/**
+	 * Returns the underlying texture when the DepthStencilTarget is created with createTexture(),
+	 * otherwise returns NULL.
+	 *
+	 * @return The texture or NULL
+	 */
+	Texture* getDepthTexture() const;
+	
 private:
 
     /**
@@ -110,6 +130,7 @@ private:
     Format _format;
     RenderBufferHandle _depthBuffer;
     RenderBufferHandle _stencilBuffer;
+	Texture* _depthTexture;
     unsigned int _width;
     unsigned int _height;
     bool _packed;

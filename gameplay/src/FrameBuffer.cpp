@@ -217,16 +217,26 @@ void FrameBuffer::setDepthStencilTarget(DepthStencilTarget* target)
         // Now set this target as the color attachment corresponding to index.
         GL_ASSERT( glBindFramebuffer(GL_FRAMEBUFFER, _handle) );
 
-        // Attach the render buffer to the framebuffer
-        GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_depthBuffer) );
-        if (target->isPacked())
-        {
-            GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_depthBuffer) );
-        }
-        else if (target->getFormat() == DepthStencilTarget::DEPTH_STENCIL)
-        {
-            GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_stencilBuffer) );
-        }
+        // Attach the DepthStencilTarget's render buffer or texture to the framebuffer
+		if (target->getDepthTexture() == NULL)
+		{
+			// Not using depth texture, attach the render buffer to the framebuffer
+			GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_depthBuffer) );
+			if (target->isPacked())
+			{
+				GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_depthBuffer) );
+			}
+			else if (target->getFormat() == DepthStencilTarget::DEPTH_STENCIL)
+			{
+				GL_ASSERT( glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, _depthStencilTarget->_stencilBuffer) );
+			}
+		}
+		else
+		{
+			// Using a depth texture, attach it to the framebuffer
+			TextureHandle textureHandle = target->getDepthTexture()->getHandle();
+			GL_ASSERT( glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textureHandle, 0) );
+		}
 
         // Check the framebuffer is good to go.
         GLenum fboStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
